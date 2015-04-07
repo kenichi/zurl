@@ -14,26 +14,31 @@ responses, colors headers.
 
 ##### examples
 
-`$ zurl -d foo=bar -d 'baz: 123, bat: true' http://example.com`
+`$ zurl -d foo=bar -d 'aaa=bbb&ccc=54321' -d 'baz: 123, bat: true' http://example.com`
 
 this would post the following body:
 
 ```javascript
 {
   "foo": "bar",
+  "aaa": "bbb",
+  "ccc": "54321",
   "baz": 123,
   "bat": true
 }
 ```
 
+n.b. - if you want to post integers or booleans, use rubyish hash syntax as formencoded
+assumes strings.
+
 #### -W
 
-* show formatted version of json post body
+show formatted version of json post body
 
 #### -Z
 
-* show '\*' lines from curl -v output
+show starred lines from curl -v output
 
 #### -oauth [token]
 
-* add 'Authorization: Bearer [token] header
+add `Authorization: Bearer [token]` header
