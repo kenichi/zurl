@@ -5,6 +5,7 @@ Gem::Specification.new do |gem|
   gem.executables = ['zurl']
   gem.files = `git ls-files | grep -v .gitignore`.split("\n")
   gem.name = "zurl"
-  gem.version = '0.0.1'
+  gem.version = '0.0.2'
   gem.add_dependency 'colored'
+  gem.add_dependency 'awesome_print'
 end
