@@ -14,7 +14,7 @@ CMD = [
   '-s'
 ]
 
-RUBYISH = /\w+(:|\s*=>)\s*\w+/
+RUBYISH = /\S+(:|\s*=>)\s*\S+/
 FORM_ENCODED_KEY_VALUE = /^([^=]+?)=([^=]+?)$/
 
 class PostData
