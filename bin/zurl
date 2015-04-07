@@ -1,0 +1,140 @@
+#!/usr/bin/env ruby
+
+CURL = `which curl`.chomp
+exit 1 if CURL.empty?
+
+require 'awesome_print'
+require 'colored'
+require 'json'
+require 'open3'
+
+CMD = [
+  CURL,
+  '-v',
+  '-s'
+]
+
+RUBYISH = /\w+(:|\s*=>)\s*\w+/
+FORM_ENCODED_KEY_VALUE = /^([^=]+?)=([^=]+?)$/
+
+class PostData
+
+  attr_reader :data
+
+  def data?
+    !!@data
+  end
+
+  def parse_data s
+    case
+
+    when m = RUBYISH.match(s)
+      tried_hash = false
+      begin
+        d = eval s
+      rescue SyntaxError => se
+        if tried_hash
+          d = nil
+          raise se
+        else
+          s = '{' + s + '}'
+          tried_hash = true
+          retry
+        end
+      end
+      if @data.nil?
+        @data = d
+      else
+        @data.merge! d
+      end
+
+    when m = FORM_ENCODED_KEY_VALUE.match(s)
+      @data ||= {}
+      @data[m[1]] = m[2]
+
+    when s.index(',')
+      case @data
+      when Array
+        @data += s.split(',')
+      when Hash
+        raise ArgumentError.new 'adding array to existing object'
+      else
+        @data = s.split(',')
+      end
+
+    when s.index('&')
+      s.split('&').each{|kv| parse_data(kv)}
+
+    end
+  end
+
+  def to_json
+    @data.to_json
+  end
+
+end
+
+args = []
+pd = PostData.new
+post_data_flag = false
+oauth_token_flag = false
+show_post_data = false
+show_starred_lines = false
+
+ARGV.each do |a|
+  if post_data_flag
+    if a[0] == '@'
+      args += ['-d', a]
+    else
+      pd.parse_data a
+      post_data_flag = false
+    end
+  elsif oauth_token_flag
+    args.push '-H', "Authorization: Bearer #{a}"
+    oauth_token_flag = false
+  else
+    case a
+    when '-d'
+      post_data_flag = true
+    when '-oauth'
+      oauth_token_flag = true
+    when '-W'
+      show_post_data = true
+    when '-Z'
+      show_starred_lines = true
+    else
+      args << a
+    end
+  end
+end
+
+if pd.data?
+  args.push '-H', 'Content-Type: application/json',
+            '-d', pd.to_json
+
+  if show_post_data
+    puts 'posting:'
+    puts JSON.pretty_generate(pd.data).red
+  end
+end
+
+out,err = Open3.capture3 *(CMD + args)
+
+err.split("\n").each do |e|
+  if e[0] == '*'
+    puts e.purple if show_starred_lines
+  else
+    puts e.__send__ case e[0]
+                    when '>';      :cyan
+                    when '<';      :yellow
+                    when '{', '}'; :black
+                    else;          :blue
+                    end
+  end
+end
+
+begin
+  ap JSON.parse out
+rescue
+  puts out
+end
